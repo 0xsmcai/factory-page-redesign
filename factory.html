@@ -121,7 +121,7 @@ html, body {
 
 .title-overlay {
   position: absolute;
-  top: 12px;
+  top: 6px;
   left: 0; right: 0;
   text-align: center;
   pointer-events: none;
@@ -281,9 +281,9 @@ function resize() {
   canvas.width = W; canvas.height = H;
   // Factory fills most of viewport
   fw = Math.floor(W * 0.94);
-  fh = Math.floor(H * 0.58);
+  fh = Math.floor(H * 0.62);
   fx = Math.floor((W - fw) / 2);
-  fy = Math.floor(H * 0.25);
+  fy = Math.floor(H * 0.20);
 }
 resize();
 window.addEventListener('resize', resize);
@@ -564,6 +564,9 @@ function drawFactory(t) {
     ctx.fillRect(sx - 4, beltY + beltH + 14, 11, 3);
   }
 
+  // ── FLOOR PIPES & CABLES ──
+  drawFloorDetail(fx, fy, fw, fh, beltY, t);
+
   // ── FORGE MACHINERY ──
   drawForgeMachinery(fx + zInputW, fy, zForgeW, fh, t, beltY);
 
@@ -572,6 +575,9 @@ function drawFactory(t) {
 
   // ── OUTPUT DOCK ──
   drawOutputDock(fx + zInputW + zForgeW, fy, zOutputW, t, beltY);
+
+  // ── WALL PANELS & GAUGES (above conveyor) ──
+  drawWallDetail(fx, fy, fw, fh, zInputW, zForgeW, t);
 
   // ── ITEMS ──
   for (const it of items) {
@@ -634,6 +640,124 @@ function drawZoneGlow(x, y, w, h, col, glowCol) {
   // Bottom edge highlight
   ctx.fillStyle = col + '18';
   ctx.fillRect(x + 4, y + h - 4, w - 8, 4);
+}
+
+function drawFloorDetail(fx, fy, fw, fh, beltY, t) {
+  const floorY = beltY + 24;
+  const floorBot = fy + fh - 18;
+
+  // Horizontal pipes below conveyor
+  ctx.strokeStyle = '#222235';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(fx + 20, floorY + 10);
+  ctx.lineTo(fx + fw - 20, floorY + 10);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#1e1e30';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(fx + 40, floorY + 22);
+  ctx.lineTo(fx + fw - 40, floorY + 22);
+  ctx.stroke();
+
+  // Pipe joints / valves
+  ctx.fillStyle = '#2a2a3e';
+  for (let px = fx + 80; px < fx + fw - 80; px += 100) {
+    ctx.beginPath(); ctx.arc(px, floorY + 10, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Vertical pipe connectors
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  for (let px = fx + 120; px < fx + fw - 120; px += 180) {
+    ctx.beginPath();
+    ctx.moveTo(px, floorY + 10);
+    ctx.lineTo(px, floorY + 22);
+    ctx.stroke();
+  }
+
+  // Cable bundles on floor
+  ctx.strokeStyle = '#18182a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const cy = floorBot - 4 - i * 3;
+    ctx.beginPath();
+    ctx.moveTo(fx + 30 + i * 10, cy);
+    for (let cx = fx + 30; cx < fx + fw - 30; cx += 20) {
+      ctx.lineTo(cx + 10, cy + Math.sin(cx * 0.02 + i) * 1.5);
+    }
+    ctx.stroke();
+  }
+
+  // Floor grate pattern (subtle)
+  ctx.fillStyle = '#0f0f18';
+  for (let gx = fx + 15; gx < fx + fw - 15; gx += 8) {
+    for (let gy = floorBot - 2; gy < fy + fh - 8; gy += 4) {
+      ctx.fillRect(gx, gy, 2, 1);
+    }
+  }
+}
+
+function drawWallDetail(fx, fy, fw, fh, inputW, forgeW, t) {
+  // Gauge panels on back wall (in forge zone)
+  const forgeX = fx + inputW;
+  const panelY = fy + 10;
+
+  // Small monitoring screens
+  for (let i = 0; i < 4; i++) {
+    const px = forgeX + forgeW * (0.08 + i * 0.24);
+    const py = panelY + 28;
+
+    // Screen housing
+    ctx.fillStyle = '#1a1a28';
+    ctx.fillRect(px, py, 22, 16);
+    ctx.strokeStyle = '#2a2a3a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, 22, 16);
+
+    // Screen content — mini waveforms
+    ctx.fillStyle = i < 2 ? C.greenDim + '80' : C.amberDim + '80';
+    const waveY = py + 8;
+    for (let wx = 0; wx < 18; wx += 2) {
+      const h = reducedMotion ? 3 : 2 + Math.sin(t * 0.004 + wx * 0.5 + i * 2) * 3;
+      ctx.fillRect(px + 2 + wx, waveY - h / 2, 1, Math.max(1, h));
+    }
+
+    // LED dot
+    const ledOn = reducedMotion ? true : Math.sin(t * 0.002 + i) > -0.3;
+    ctx.fillStyle = ledOn ? '#4AF626' : '#1a3a10';
+    ctx.fillRect(px + 18, py + 2, 2, 2);
+  }
+
+  // Input zone: terminal screen
+  const termX = fx + inputW * 0.2;
+  const termY = fy + 14;
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(termX, termY, 36, 24);
+  ctx.strokeStyle = C.blueDim;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(termX, termY, 36, 24);
+  // Terminal text lines
+  ctx.fillStyle = C.blue + '60';
+  for (let l = 0; l < 4; l++) {
+    const lw = 8 + Math.random() * 20;
+    ctx.fillRect(termX + 3, termY + 4 + l * 5, Math.min(lw, 30), 2);
+  }
+
+  // Output zone: quality badge
+  const badgeX = fx + inputW + forgeW + (fw - inputW - forgeW) * 0.3;
+  const badgeY = fy + 18;
+  ctx.fillStyle = C.gold + '20';
+  ctx.beginPath(); ctx.arc(badgeX + 12, badgeY + 12, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.gold + '40';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(badgeX + 12, badgeY + 12, 14, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = C.gold + '60';
+  ctx.font = '9px "VT323", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('QA', badgeX + 12, badgeY + 14);
+  ctx.fillText('PASS', badgeX + 12, badgeY + 22);
 }
 
 function drawForgeMachinery(zx, zy, zw, zh, t, beltY) {
@@ -702,6 +826,61 @@ function drawForgeMachinery(zx, zy, zw, zh, t, beltY) {
   ctx.fillStyle = '#3a3a4a';
   for (let px = zx + 40; px < zx + zw - 40; px += 80) {
     ctx.beginPath(); ctx.arc(px, machY + 20, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ── MID-SECTION DETAIL: vertical conduits, transformers ──
+  const midY = machY + 30;
+  const midBot = beltY - 20;
+  const midH = midBot - midY;
+
+  if (midH > 20) {
+    // Vertical conduits (3 major lines)
+    for (let i = 0; i < 3; i++) {
+      const cx2 = zx + zw * (0.20 + i * 0.30);
+      // Main conduit
+      ctx.fillStyle = '#1e1e30';
+      ctx.fillRect(cx2 - 2, midY, 4, midH);
+      // Highlight edge
+      ctx.fillStyle = '#2a2a40';
+      ctx.fillRect(cx2 - 2, midY, 1, midH);
+      // Junction boxes
+      ctx.fillStyle = '#252538';
+      ctx.fillRect(cx2 - 5, midY + midH * 0.3, 10, 8);
+      ctx.strokeStyle = '#3a3a4a';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx2 - 5, midY + midH * 0.3, 10, 8);
+      // LED on junction
+      const ledPhase = reducedMotion ? 1 : (Math.sin(t * 0.003 + i * 2) > 0 ? 1 : 0.2);
+      ctx.fillStyle = `rgba(74,246,38,${ledPhase * 0.6})`;
+      ctx.fillRect(cx2 - 1, midY + midH * 0.3 + 3, 2, 2);
+    }
+
+    // Horizontal cable runs between conduits
+    ctx.strokeStyle = '#1a1a2e';
+    ctx.lineWidth = 1;
+    for (let j = 0; j < 2; j++) {
+      const cy2 = midY + midH * (0.2 + j * 0.45);
+      ctx.beginPath();
+      ctx.moveTo(zx + zw * 0.18, cy2);
+      ctx.lineTo(zx + zw * 0.82, cy2);
+      ctx.stroke();
+    }
+
+    // Small transformers / boxes (between conduits)
+    for (let i = 0; i < 2; i++) {
+      const bx = zx + zw * (0.35 + i * 0.30);
+      const by2 = midY + midH * 0.55;
+      ctx.fillStyle = '#1a1a28';
+      ctx.fillRect(bx, by2, 14, 10);
+      ctx.strokeStyle = '#2a2a38';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by2, 14, 10);
+      // Coil lines
+      ctx.fillStyle = C.amberDim + '40';
+      ctx.fillRect(bx + 3, by2 + 2, 8, 1);
+      ctx.fillRect(bx + 3, by2 + 5, 8, 1);
+      ctx.fillRect(bx + 3, by2 + 8, 8, 1);
+    }
   }
 }
 
