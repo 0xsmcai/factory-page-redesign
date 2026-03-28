@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMC Factory — Autonomous Startup Factory</title>
+
+<!-- OG Meta -->
+<meta property="og:title" content="SMC Factory — Autonomous Startup Factory">
+<meta property="og:description" content="Ideas flow in. GStack validates. Products ship out.">
+<meta property="og:image" content="/og-factory.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@0xsmcai">
+<meta name="twitter:title" content="SMC Factory — Autonomous Startup Factory">
+<meta name="twitter:description" content="Ideas flow in. GStack validates. Products ship out.">
+<meta name="twitter:image" content="/og-factory.png">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --bg-deep: #0a0a0a;
+  --bg-surface: #0d1117;
+  --bg-elevated: #161b22;
+
+  /* Borders */
+  --border: #1a2332;
+  --border-bright: #2a3a4a;
+
+  /* Text */
+  --text-muted: #4a5568;
+  --text-secondary: #7a8a9a;
+  --text-primary: #c9d1d9;
+
+  /* Signal Colors */
+  --terminal-green: #4AF626;
+  --terminal-green-dim: #2a8a14;
+  --terminal-green-glow: rgba(74, 246, 38, 0.15);
+  --intake-blue: #4A90D9;
+  --intake-blue-dim: #2a5a8a;
+  --forge-amber: #FFB000;
+  --forge-amber-dim: #8a6000;
+  --forge-amber-hot: #FF8C00;
+  --output-gold: #FFD700;
+  --output-gold-glow: rgba(255, 215, 0, 0.2);
+  --reject-red: #FF3333;
+  --reject-red-dim: #8a1a1a;
+
+  /* CRT */
+  --scanline-opacity: 0.03;
+  --scanline-color: rgba(74, 246, 38, 0.02);
+  --phosphor-blur: 0 0 8px var(--terminal-green-glow);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Animation */
+  --duration-blink: 1000ms;
+  --duration-conveyor: 12000ms;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'VT323', monospace;
+}
+
+/* ═══════════════════════════════════════════
+   TERMINAL CHROME
+   ═══════════════════════════════════════════ */
+.terminal {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.terminal-bar {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-sm) var(--space-md);
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: var(--terminal-green);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.terminal-bar-bottom {
+  border-bottom: none;
+  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  background: var(--terminal-green);
+  border-radius: 50%;
+  animation: pulse-dot var(--duration-blink) ease-in-out infinite;
+  box-shadow: var(--phosphor-blur);
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.blink-cursor {
+  animation: blink-cursor var(--duration-blink) step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.status-text { color: var(--terminal-green); }
+.status-dim { color: var(--terminal-green-dim); }
+
+.cta-link {
+  color: var(--terminal-green);
+  text-decoration: none;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  transition: color 0.1s;
+}
+.cta-link:hover { color: #7fff7f; }
+.cta-link:focus-visible { outline: 2px solid var(--terminal-green); outline-offset: 2px; }
+
+.watermark {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.shipped-count {
+  color: var(--output-gold);
+  font-size: 16px;
+}
+
+/* ═══════════════════════════════════════════
+   CANVAS VIEWPORT
+   ═══════════════════════════════════════════ */
+.canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+#factory-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ═══════════════════════════════════════════
+   TITLE OVERLAY
+   ═══════════════════════════════════════════ */
+.title-overlay {
+  position: absolute;
+  top: var(--space-lg);
+  left: 0; right: 0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.title-main {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 28px;
+  color: var(--text-primary);
+  text-shadow: 0 0 20px rgba(255,255,255,0.1), 2px 2px 0 rgba(0,0,0,0.8);
+  letter-spacing: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.title-sub {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--output-gold);
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px var(--output-gold-glow);
+}
+
+/* ═══════════════════════════════════════════
+   CRT OVERLAY
+   ═══════════════════════════════════════════ */
+.crt-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.crt-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--scanline-color) 0px,
+    var(--scanline-color) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: var(--scanline-opacity);
+}
+
+.crt-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35));
+}
+
+/* ═══════════════════════════════════════════
+   DISCLAIMER
+   ═══════════════════════════════════════════ */
+.disclaimer {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'VT323', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  z-index: 25;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .blink-cursor { animation: none; opacity: 1; }
+  #factory-canvas { animation: none; }
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .title-main { font-size: 22px; }
+  .title-sub { font-size: 8px; }
+  .uptime-text { display: none; }
+}
+
+@media (max-width: 768px) {
+  .terminal-bar { font-size: 15px; padding: var(--space-xs) var(--space-sm); min-height: 30px; }
+  .terminal-bar-bottom { font-size: 14px; }
+  .title-main { font-size: 18px; letter-spacing: 2px; }
+  .title-sub { font-size: 7px; letter-spacing: 1px; }
+  .cycle-text, .uptime-text { display: none; }
+  .watermark { display: none; }
+}
+
+@media (max-width: 480px) {
+  .title-main { font-size: 14px; }
+  .title-sub { font-size: 6px; }
+}
+
+/* ═══════════════════════════════════════════
+   NOSCRIPT
+   ═══════════════════════════════════════════ */
+noscript .fallback-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--terminal-green);
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  text-align: center;
+  padding: var(--space-xl);
+}
+</style>
+</head>
+<body>
+
+<div class="terminal">
+  <!-- Top Bar -->
+  <div class="terminal-bar">
+    <span class="status-text">[SMC-FACTORY]</span>
+    <span class="status-dim">—</span>
+    <span class="status-text">status:</span>
+    <span class="live-dot"></span>
+    <span class="status-text">LIVE</span>
+    <span class="status-dim">—</span>
+    <span class="status-dim uptime-text">uptime: 47d 12h</span>
+    <span class="status-dim uptime-text">—</span>
+    <span class="status-dim cycle-text">cycle: 12s</span>
+    <span class="status-dim" style="flex:1"></span>
+    <span class="blink-cursor status-text">&#9646;</span>
+  </div>
+
+  <!-- Canvas Viewport -->
+  <div class="canvas-wrap">
+    <canvas id="factory-canvas" role="img" aria-label="Isometric pixel art factory showing the 0xSMC autonomous startup pipeline: ideas enter from the left, pass through GStack validation stages, and ship as golden products on the right"></canvas>
+
+    <div class="title-overlay">
+      <div class="title-main" id="title-text"></div>
+      <div class="title-sub">AUTONOMOUS STARTUP FACTORY</div>
+    </div>
+
+    <div class="crt-overlay"></div>
+    <div class="disclaimer">For informational purposes only. Use at your own risk.</div>
+
+    <noscript>
+      <div class="fallback-msg">
+        [SMC FACTORY] Enable JavaScript to view the autonomous factory visualization.
+      </div>
+    </noscript>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="terminal-bar terminal-bar-bottom">
+    <a href="https://x.com/0xsmcai" target="_blank" rel="noopener" class="cta-link">&#x1D54F; @0xsmcai</a>
+    <span class="watermark">Built by 0xSMC · Autonomous AI agent</span>
+    <span class="shipped-count" id="shipped-count">products shipped: 47</span>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   SMC FACTORY — ISOMETRIC PIXEL ART ENGINE
+   ═══════════════════════════════════════════ */
+(function() {
+'use strict';
+
+// ─── CONFIG ────────────────────────────────
+const BASE_SHIPPED = 47;
+const CONVEYOR_CYCLE = 12000;
+const ITEM_SPAWN_INTERVAL = 3500;
+const REJECT_CHANCE = 0.25;
+const SMOKE_COUNT = 4;
+const PARTICLE_COUNT = 12;
+
+// ─── COLORS (matching CSS tokens) ──────────
+const C = {
+  bgDeep:       '#0a0a0a',
+  bgSurface:    '#0d1117',
+  border:       '#1a2332',
+  borderBright: '#2a3a4a',
+  textMuted:    '#4a5568',
+  textSecondary:'#7a8a9a',
+  textPrimary:  '#c9d1d9',
+  green:        '#4AF626',
+  greenDim:     '#2a8a14',
+  blue:         '#4A90D9',
+  blueDim:      '#2a5a8a',
+  amber:        '#FFB000',
+  amberDim:     '#8a6000',
+  amberHot:     '#FF8C00',
+  gold:         '#FFD700',
+  red:          '#FF3333',
+  redDim:       '#8a1a1a',
+};
+
+// ─── CANVAS SETUP ──────────────────────────
+const canvas = document.getElementById('factory-canvas');
+const ctx = canvas.getContext('2d');
+if (!ctx) { document.querySelector('.canvas-wrap').innerHTML = '<div class="fallback-msg" style="display:flex;align-items:center;justify-content:center;height:100%;color:#4AF626;font-family:VT323,monospace;font-size:24px">[CANVAS UNAVAILABLE]</div>'; return; }
+
+let W, H, scale;
+let factoryX, factoryY, factoryW, factoryH;
+let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = Math.floor(rect.width);
+  H = Math.floor(rect.height);
+
+  // For pixel art crispness, use integer scaling
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+
+  // Calculate factory bounds (centered, 90% width, 55% height)
+  scale = Math.min(W / 1200, H / 630);
+  factoryW = Math.floor(W * 0.92);
+  factoryH = Math.floor(H * 0.50);
+  factoryX = Math.floor((W - factoryW) / 2);
+  factoryY = Math.floor(H * 0.28);
+}
+
+resize();
+window.addEventListener('resize', resize);
+
+// ─── TITLE TYPEWRITER ──────────────────────
+const titleEl = document.getElementById('title-text');
+const titleStr = 'SMC FACTORY';
+let titleIdx = 0;
+function typeTitle() {
+  if (titleIdx <= titleStr.length) {
+    titleEl.textContent = titleStr.slice(0, titleIdx) + (titleIdx < titleStr.length ? '_' : '');
+    titleIdx++;
+    setTimeout(typeTitle, 100);
+  } else {
+    titleEl.textContent = titleStr;
+  }
+}
+setTimeout(typeTitle, 400);
+
+// ─── SHIPPED COUNTER ───────────────────────
+let shippedExtra = 0;
+const shippedEl = document.getElementById('shipped-count');
+function updateShipped() {
+  shippedEl.textContent = 'products shipped: ' + (BASE_SHIPPED + shippedExtra);
+}
+
+// ─── ITEMS ON CONVEYOR ─────────────────────
+// Items travel from left (0.0) to right (1.0) over CONVEYOR_CYCLE ms
+// States: 'intake', 'forge', 'output', 'rejected', 'done'
+const items = [];
+let lastSpawn = 0;
+let itemIdCounter = 0;
+
+function spawnItem(now) {
+  items.push({
+    id: itemIdCounter++,
+    progress: 0,
+    state: 'intake',
+    rejected: Math.random() < REJECT_CHANCE,
+    rejectFlash: 0,
+    sparkle: 0,
+    spawnTime: now,
+    opacity: 1,
+    size: 6 + Math.random() * 3,
+  });
+}
+
+function updateItems(now, dt) {
+  // Spawn new items
+  if (now - lastSpawn > ITEM_SPAWN_INTERVAL) {
+    spawnItem(now);
+    lastSpawn = now;
+  }
+
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.state === 'done') { items.splice(i, 1); continue; }
+
+    const speed = dt / CONVEYOR_CYCLE;
+
+    if (item.state === 'rejected') {
+      item.rejectFlash += dt;
+      item.opacity = Math.max(0, 1 - item.rejectFlash / 600);
+      item.size *= 1 + dt * 0.001;
+      if (item.opacity <= 0) item.state = 'done';
+      continue;
+    }
+
+    item.progress += speed;
+
+    // Zone transitions
+    if (item.progress < 0.2) {
+      item.state = 'intake';
+    } else if (item.progress < 0.8) {
+      item.state = 'forge';
+      // Check for rejection at the midpoint
+      if (item.rejected && item.progress >= 0.45 && item.progress < 0.46 + speed) {
+        item.state = 'rejected';
+        item.rejectFlash = 0;
+        continue;
+      }
+    } else if (item.progress < 1.0) {
+      item.state = 'output';
+      item.sparkle = Math.min(1, (item.progress - 0.8) / 0.15);
+    } else {
+      // Item shipped
+      shippedExtra++;
+      updateShipped();
+      item.state = 'done';
+    }
+  }
+}
+
+// ─── SMOKE PUFFS ───────────────────────────
+const smokePuffs = [];
+for (let i = 0; i < SMOKE_COUNT; i++) {
+  smokePuffs.push({
+    offset: i * (4000 / SMOKE_COUNT),
+    x: 0, y: 0, r: 0, opacity: 0,
+  });
+}
+
+function updateSmoke(now) {
+  const chimneyX = factoryX + factoryW * 0.78;
+  const chimneyY = factoryY - 8;
+
+  for (let i = 0; i < smokePuffs.length; i++) {
+    const s = smokePuffs[i];
+    const t = ((now + s.offset) % 4000) / 4000;
+    s.x = chimneyX + Math.sin(t * Math.PI * 2) * 8;
+    s.y = chimneyY - t * 60;
+    s.r = 4 + t * 14;
+    s.opacity = Math.max(0, 0.3 - t * 0.35);
+  }
+}
+
+// ─── AMBIENT PARTICLES ─────────────────────
+const particles = [];
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  particles.push({
+    x: Math.random(), y: Math.random(),
+    vx: (Math.random() - 0.5) * 0.00005,
+    vy: -Math.random() * 0.0001 - 0.00003,
+    size: 1 + Math.random() * 2,
+    brightness: 0.3 + Math.random() * 0.5,
+    twinkle: Math.random() * Math.PI * 2,
+  });
+}
+
+function updateParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.twinkle += dt * 0.003;
+    if (p.y < 0 || p.x < 0 || p.x > 1) {
+      p.x = 0.1 + Math.random() * 0.8;
+      p.y = 0.95 + Math.random() * 0.05;
+      p.brightness = 0.3 + Math.random() * 0.5;
+    }
+  }
+}
+
+// ─── DRAW: ISOMETRIC GRID BACKGROUND ───────
+function drawGridBg() {
+  // Subtle grid dots
+  ctx.fillStyle = '#111118';
+  const spacing = 24;
+  for (let x = 0; x < W; x += spacing) {
+    for (let y = 0; y < H; y += spacing) {
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+}
+
+// ─── DRAW: FACTORY STRUCTURE ───────────────
+function drawFactory(now) {
+  const fx = factoryX, fy = factoryY, fw = factoryW, fh = factoryH;
+
+  // Factory floor shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(fx + 6, fy + fh + 4, fw, 8);
+
+  // Factory main body
+  const bodyGrad = ctx.createLinearGradient(fx, fy, fx, fy + fh);
+  bodyGrad.addColorStop(0, '#1a1a2e');
+  bodyGrad.addColorStop(1, '#12121f');
+  ctx.fillStyle = bodyGrad;
+  ctx.fillRect(fx, fy, fw, fh);
+
+  // Factory border
+  ctx.strokeStyle = C.borderBright;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fx, fy, fw, fh);
+
+  // Rivets along the top
+  ctx.fillStyle = C.borderBright;
+  for (let rx = fx + 12; rx < fx + fw; rx += 24) {
+    ctx.beginPath();
+    ctx.arc(rx, fy + 6, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── THREE ZONES ──────────────────────────
+  const zoneW_input = fw * 0.20;
+  const zoneW_forge = fw * 0.60;
+  const zoneW_output = fw * 0.20;
+  const zoneY = fy + 14;
+  const zoneH = fh - 28;
+
+  // Input zone (blue glow)
+  drawZone(fx + 2, zoneY, zoneW_input - 4, zoneH, C.blueDim, C.blue, '> ideas', now);
+
+  // Forge zone (amber glow)
+  drawZone(fx + zoneW_input, zoneY, zoneW_forge, zoneH, C.amberDim, C.amber, '// gstack pipeline', now);
+
+  // Output zone (gold glow)
+  drawZone(fx + zoneW_input + zoneW_forge + 2, zoneY, zoneW_output - 4, zoneH, '#4a3a00', C.gold, '> shipped', now);
+
+  // ── CONVEYOR BELT ────────────────────────
+  const beltY = fy + fh * 0.62;
+  const beltH = 12;
+  const beltX = fx + 16;
+  const beltW = fw - 32;
+
+  // Belt track
+  ctx.fillStyle = '#2a2a35';
+  ctx.fillRect(beltX, beltY, beltW, beltH);
+  ctx.strokeStyle = '#3a3a4a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(beltX, beltY, beltW, beltH);
+
+  // Belt segments (animated)
+  const segOffset = reducedMotion ? 0 : (now % 1000) / 1000 * 16;
+  ctx.fillStyle = '#353545';
+  for (let sx = beltX - segOffset; sx < beltX + beltW; sx += 16) {
+    const drawX = Math.max(sx, beltX);
+    const drawW = Math.min(sx + 2, beltX + beltW) - drawX;
+    if (drawW > 0) ctx.fillRect(drawX, beltY + 1, drawW, beltH - 2);
+  }
+
+  // ── ZONE DIVIDERS ───────────────────────
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  // Input | Forge
+  const d1x = fx + zoneW_input;
+  ctx.beginPath(); ctx.moveTo(d1x, zoneY); ctx.lineTo(d1x, zoneY + zoneH); ctx.stroke();
+  // Forge | Output
+  const d2x = fx + zoneW_input + zoneW_forge;
+  ctx.beginPath(); ctx.moveTo(d2x, zoneY); ctx.lineTo(d2x, zoneY + zoneH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── MACHINERY IN FORGE ──────────────────
+  drawForgeMachinery(fx + zoneW_input, zoneY, zoneW_forge, zoneH, now);
+
+  // ── CHIMNEY ─────────────────────────────
+  const chimX = fx + fw * 0.76;
+  const chimW = 18;
+  const chimH = 30;
+  ctx.fillStyle = '#2a2a3a';
+  ctx.fillRect(chimX, fy - chimH, chimW, chimH + 4);
+  ctx.strokeStyle = C.borderBright;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(chimX, fy - chimH, chimW, chimH + 4);
+
+  // ── ITEMS ON BELT ───────────────────────
+  for (const item of items) {
+    if (item.state === 'done') continue;
+    const ix = beltX + item.progress * beltW;
+    const iy = beltY - 4;
+    drawItem(ix, iy, item, now);
+  }
+
+  // ── CHARACTERS ──────────────────────────
+  // NV (intake, left side)
+  const nvX = fx + zoneW_input * 0.5;
+  const nvY = beltY - 28;
+  drawNV(nvX, nvY, now);
+
+  // Garry (output, right side)
+  const garryX = fx + zoneW_input + zoneW_forge + zoneW_output * 0.5;
+  const garryY = beltY - 28;
+  drawGarry(garryX, garryY, now);
+
+  // ── SMOKE ───────────────────────────────
+  for (const s of smokePuffs) {
+    if (s.opacity <= 0) continue;
+    ctx.globalAlpha = s.opacity;
+    ctx.fillStyle = '#555566';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── ZONE LABELS (on canvas) ─────────────
+  drawZoneLabels(fx, fy, fw, fh, zoneW_input, zoneW_forge, now);
+}
+
+function drawZone(x, y, w, h, dimColor, brightColor, label, now) {
+  // Subtle zone background glow
+  const grad = ctx.createRadialGradient(
+    x + w/2, y + h/2, 0,
+    x + w/2, y + h/2, Math.max(w, h) * 0.6
+  );
+  grad.addColorStop(0, dimColor + '30');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+
+  // Bottom edge glow
+  ctx.fillStyle = brightColor + '15';
+  ctx.fillRect(x, y + h - 3, w, 3);
+}
+
+function drawForgeMachinery(x, y, w, h, now) {
+  const cx = x + w * 0.5;
+  const cy = y + h * 0.35;
+
+  // Gears
+  drawGear(x + w * 0.22, cy - 10, 14, 6, now * 0.001, C.amberDim);
+  drawGear(x + w * 0.22 + 20, cy - 4, 10, 5, -now * 0.0013, C.amberDim);
+  drawGear(x + w * 0.50, cy - 8, 16, 7, now * 0.0008, '#5a4a2a');
+  drawGear(x + w * 0.75, cy - 6, 12, 6, -now * 0.001, C.amberDim);
+
+  // Sparks from center gear (occasional)
+  if (!reducedMotion && Math.sin(now * 0.005) > 0.85) {
+    const sparkCount = 3;
+    for (let i = 0; i < sparkCount; i++) {
+      const angle = (now * 0.01 + i * 2.1) % (Math.PI * 2);
+      const dist = 18 + Math.sin(now * 0.02 + i) * 6;
+      const sx = cx + Math.cos(angle) * dist;
+      const sy = cy - 8 + Math.sin(angle) * dist * 0.5;
+      ctx.fillStyle = i % 2 === 0 ? C.amberHot : '#ffe8a0';
+      ctx.fillRect(Math.floor(sx), Math.floor(sy), 2, 2);
+    }
+  }
+
+  // Stamp machine (center)
+  const stampY = y + h * 0.22;
+  ctx.fillStyle = '#3a3a4a';
+  ctx.fillRect(cx - 8, stampY, 16, 6);
+  ctx.fillStyle = '#4a4a5a';
+  ctx.fillRect(cx - 5, stampY + 6, 10, 4 + (reducedMotion ? 0 : Math.sin(now * 0.004) * 3));
+
+  // Processing bars (3 stations)
+  for (let i = 0; i < 3; i++) {
+    const bx = x + w * (0.15 + i * 0.30);
+    const by = y + h * 0.72;
+    const progress = reducedMotion ? 0.5 : (Math.sin(now * 0.002 + i * 1.5) + 1) / 2;
+    ctx.fillStyle = '#1a1a2a';
+    ctx.fillRect(bx, by, 40, 4);
+    ctx.fillStyle = C.amber;
+    ctx.fillRect(bx, by, 40 * progress, 4);
+  }
+}
+
+function drawGear(cx, cy, r, teeth, angle, color) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (!reducedMotion) ctx.rotate(angle);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < teeth; i++) {
+    const a1 = (i / teeth) * Math.PI * 2;
+    const a2 = ((i + 0.3) / teeth) * Math.PI * 2;
+    const a3 = ((i + 0.5) / teeth) * Math.PI * 2;
+    const a4 = ((i + 0.8) / teeth) * Math.PI * 2;
+    const ri = r * 0.7;
+    if (i === 0) ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r);
+    ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r);
+    ctx.lineTo(Math.cos(a2) * ri, Math.sin(a2) * ri);
+    ctx.lineTo(Math.cos(a3) * ri, Math.sin(a3) * ri);
+    ctx.lineTo(Math.cos(a4) * r, Math.sin(a4) * r);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Gear center
+  ctx.fillStyle = '#1a1a2a';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawItem(x, y, item, now) {
+  const s = item.size;
+
+  if (item.state === 'intake') {
+    // Blue orb
+    ctx.fillStyle = C.blue;
+    ctx.globalAlpha = item.opacity;
+    drawDiamond(x, y, s);
+    // Glow
+    ctx.fillStyle = C.blue + '40';
+    drawDiamond(x, y, s + 3);
+    ctx.globalAlpha = 1;
+  } else if (item.state === 'forge') {
+    // Amber transition
+    ctx.fillStyle = C.amber;
+    ctx.globalAlpha = item.opacity;
+    drawDiamond(x, y, s);
+    // Pulsing edge
+    const pulse = reducedMotion ? 0 : Math.sin(now * 0.008) * 0.3;
+    ctx.fillStyle = C.amberHot + '50';
+    drawDiamond(x, y, s + 2 + pulse * 3);
+    ctx.globalAlpha = 1;
+  } else if (item.state === 'output') {
+    // Golden product
+    ctx.fillStyle = C.gold;
+    ctx.globalAlpha = item.opacity;
+    // Rounded rect product box
+    ctx.fillRect(Math.floor(x - s/2), Math.floor(y - s/2), Math.floor(s), Math.floor(s));
+    // Sparkle
+    if (item.sparkle > 0 && !reducedMotion) {
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = item.sparkle * (0.5 + Math.sin(now * 0.015) * 0.5);
+      ctx.fillRect(Math.floor(x - 1), Math.floor(y - s - 2), 2, 2);
+      ctx.fillRect(Math.floor(x + s/2 + 1), Math.floor(y - 1), 2, 2);
+      ctx.fillRect(Math.floor(x - s/2 - 2), Math.floor(y + 1), 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  } else if (item.state === 'rejected') {
+    // Red dissolve
+    ctx.fillStyle = C.red;
+    ctx.globalAlpha = item.opacity;
+    drawDiamond(x, y, item.size);
+    // Rejection particles
+    for (let i = 0; i < 4; i++) {
+      const angle = (item.rejectFlash * 0.01 + i * 1.57);
+      const dist = item.rejectFlash * 0.06;
+      ctx.fillStyle = C.redDim;
+      ctx.fillRect(
+        Math.floor(x + Math.cos(angle) * dist),
+        Math.floor(y + Math.sin(angle) * dist - item.rejectFlash * 0.03),
+        2, 2
+      );
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawDiamond(cx, cy, size) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - size);
+  ctx.lineTo(cx + size * 0.7, cy);
+  ctx.lineTo(cx, cy + size * 0.5);
+  ctx.lineTo(cx - size * 0.7, cy);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ─── DRAW: NV CHARACTER ────────────────────
+function drawNV(x, y, now) {
+  // NV: Blue-tinted robot character, feeding ideas
+  const bounce = reducedMotion ? 0 : Math.sin(now * 0.004) * 2;
+  const baseY = Math.floor(y + bounce);
+  const bx = Math.floor(x - 12);
+
+  // Body (blue jacket)
+  ctx.fillStyle = '#3a6aaa';
+  ctx.fillRect(bx + 4, baseY + 10, 16, 12);
+
+  // Head
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(bx + 6, baseY, 12, 10);
+
+  // Hair (dark)
+  ctx.fillStyle = '#2a2a3a';
+  ctx.fillRect(bx + 6, baseY, 12, 4);
+
+  // Eyes
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(bx + 8, baseY + 5, 3, 2);
+  ctx.fillRect(bx + 13, baseY + 5, 3, 2);
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(bx + 9, baseY + 5, 2, 2);
+  ctx.fillRect(bx + 14, baseY + 5, 2, 2);
+
+  // Arms (reaching forward, feeding items)
+  const armAnim = reducedMotion ? 0 : Math.sin(now * 0.006) * 3;
+  ctx.fillStyle = '#3a6aaa';
+  ctx.fillRect(bx + 18, baseY + 12 + armAnim, 8, 3);
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(bx + 24, baseY + 12 + armAnim, 3, 3);
+
+  // Legs
+  ctx.fillStyle = '#2a3a5a';
+  ctx.fillRect(bx + 6, baseY + 22, 5, 6);
+  ctx.fillRect(bx + 13, baseY + 22, 5, 6);
+
+  // Shoes
+  ctx.fillStyle = '#4a4a5a';
+  ctx.fillRect(bx + 5, baseY + 27, 6, 3);
+  ctx.fillRect(bx + 12, baseY + 27, 6, 3);
+
+  // "NV" label
+  ctx.fillStyle = C.blue;
+  ctx.font = '10px "VT323", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('NV', x, baseY - 4);
+}
+
+// ─── DRAW: GARRY CHARACTER ─────────────────
+function drawGarry(x, y, now) {
+  // Garry: Gold-tinted inspector, checking products
+  const bounce = reducedMotion ? 0 : Math.sin(now * 0.004 + 1) * 2;
+  const baseY = Math.floor(y + bounce);
+  const bx = Math.floor(x - 12);
+
+  // Body (gold vest)
+  ctx.fillStyle = '#8a7a2a';
+  ctx.fillRect(bx + 4, baseY + 10, 16, 12);
+
+  // Head
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(bx + 6, baseY, 12, 10);
+
+  // Hard hat (gold)
+  ctx.fillStyle = C.gold;
+  ctx.fillRect(bx + 4, baseY - 2, 16, 5);
+  ctx.fillRect(bx + 6, baseY - 4, 12, 3);
+
+  // Eyes
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(bx + 8, baseY + 5, 3, 2);
+  ctx.fillRect(bx + 13, baseY + 5, 3, 2);
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(bx + 9, baseY + 5, 2, 2);
+  ctx.fillRect(bx + 14, baseY + 5, 2, 2);
+
+  // Arms (holding clipboard / thumbs up)
+  const headNod = reducedMotion ? 0 : Math.sin(now * 0.003) * 1;
+  ctx.fillStyle = '#8a7a2a';
+  ctx.fillRect(bx - 2, baseY + 12, 6, 3);
+  // Clipboard
+  ctx.fillStyle = '#5a5a6a';
+  ctx.fillRect(bx - 4, baseY + 10 + headNod, 5, 8);
+  ctx.fillStyle = '#7a7a8a';
+  ctx.fillRect(bx - 3, baseY + 11 + headNod, 3, 1);
+  ctx.fillRect(bx - 3, baseY + 13 + headNod, 3, 1);
+  ctx.fillRect(bx - 3, baseY + 15 + headNod, 3, 1);
+
+  // Legs
+  ctx.fillStyle = '#3a3a2a';
+  ctx.fillRect(bx + 6, baseY + 22, 5, 6);
+  ctx.fillRect(bx + 13, baseY + 22, 5, 6);
+
+  // Shoes
+  ctx.fillStyle = '#5a4a2a';
+  ctx.fillRect(bx + 5, baseY + 27, 6, 3);
+  ctx.fillRect(bx + 12, baseY + 27, 6, 3);
+
+  // "GARRY" label
+  ctx.fillStyle = C.gold;
+  ctx.font = '10px "VT323", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('GARRY', x, baseY - 8);
+}
+
+// ─── DRAW: ZONE LABELS ────────────────────
+function drawZoneLabels(fx, fy, fw, fh, inputW, forgeW, now) {
+  ctx.font = '14px "VT323", monospace';
+  ctx.textAlign = 'center';
+
+  // Input label
+  ctx.fillStyle = C.blue;
+  ctx.fillText('> ideas --in', fx + inputW * 0.5, fy + fh - 10);
+
+  // Forge label
+  ctx.fillStyle = C.amber;
+  ctx.fillText('// gstack pipeline', fx + inputW + forgeW * 0.5, fy + fh - 10);
+
+  // Output label
+  const outputX = fx + inputW + forgeW;
+  const outputW = fw - inputW - forgeW;
+  ctx.fillStyle = C.gold;
+  ctx.fillText('> shipped ✓', outputX + outputW * 0.5, fy + fh - 10);
+
+  // Processing count in forge
+  const activeItems = items.filter(i => i.state === 'forge').length;
+  if (activeItems > 0) {
+    ctx.fillStyle = C.amberHot;
+    ctx.font = '12px "VT323", monospace';
+    ctx.fillText('[processing: ' + activeItems + ']', fx + inputW + forgeW * 0.5, fy + 24);
+  }
+}
+
+// ─── DRAW: PARTICLES ──────────────────────
+function drawParticles(now) {
+  if (reducedMotion) return;
+  for (const p of particles) {
+    const twinkle = (Math.sin(p.twinkle) + 1) / 2;
+    const alpha = p.brightness * twinkle;
+    if (alpha < 0.05) continue;
+    ctx.globalAlpha = alpha;
+
+    const px = factoryX + p.x * factoryW;
+    const py = factoryY + p.y * factoryH;
+
+    // Determine color based on x position
+    if (p.x < 0.2) {
+      ctx.fillStyle = C.blue;
+    } else if (p.x < 0.8) {
+      ctx.fillStyle = '#ffe8a0';
+    } else {
+      ctx.fillStyle = C.gold;
+    }
+
+    ctx.fillRect(Math.floor(px), Math.floor(py), Math.ceil(p.size), Math.ceil(p.size));
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ─── DRAW: INTAKE HOPPER ──────────────────
+function drawIntakeHopper(now) {
+  const hx = factoryX + factoryW * 0.1 - 10;
+  const hy = factoryY - 20;
+
+  // Funnel shape
+  ctx.fillStyle = '#2a3a5a';
+  ctx.beginPath();
+  ctx.moveTo(hx, hy);
+  ctx.lineTo(hx + 24, hy);
+  ctx.lineTo(hx + 18, hy + 18);
+  ctx.lineTo(hx + 6, hy + 18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = C.blueDim;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Falling idea orb
+  if (!reducedMotion) {
+    const fallCycle = (now % ITEM_SPAWN_INTERVAL) / ITEM_SPAWN_INTERVAL;
+    if (fallCycle < 0.3) {
+      const fallY = hy - 20 + fallCycle * 120;
+      const fallAlpha = fallCycle < 0.15 ? fallCycle / 0.15 : 1;
+      ctx.globalAlpha = fallAlpha * 0.8;
+      ctx.fillStyle = C.blue;
+      drawDiamond(hx + 12, fallY, 5);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ─── DRAW: OUTPUT DOCK ────────────────────
+function drawOutputDock(now) {
+  const dx = factoryX + factoryW - 28;
+  const dy = factoryY + factoryH - 16;
+
+  // Dock arrow
+  ctx.fillStyle = C.gold + '60';
+  ctx.beginPath();
+  ctx.moveTo(dx, dy);
+  ctx.lineTo(dx + 20, dy + 8);
+  ctx.lineTo(dx, dy + 16);
+  ctx.closePath();
+  ctx.fill();
+
+  // Floating shipped products
+  if (!reducedMotion) {
+    const floatCount = 2;
+    for (let i = 0; i < floatCount; i++) {
+      const t = ((now * 0.0008 + i * 0.5) % 1);
+      const fx2 = dx + 20 + t * 30;
+      const fy2 = dy + 8 - t * 40;
+      const alpha = 1 - t;
+      if (alpha > 0.05) {
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fillStyle = C.gold;
+        ctx.fillRect(Math.floor(fx2 - 3), Math.floor(fy2 - 3), 6, 6);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+}
+
+// ─── MAIN RENDER LOOP ──────────────────────
+let lastTime = 0;
+let frameCount = 0;
+let animationPaused = false;
+
+function render(timestamp) {
+  if (!timestamp) timestamp = 0;
+  const dt = lastTime ? Math.min(timestamp - lastTime, 100) : 16;
+  lastTime = timestamp;
+
+  // Pause when tab hidden
+  if (document.hidden) {
+    requestAnimationFrame(render);
+    return;
+  }
+
+  // Update state
+  if (!reducedMotion) {
+    updateItems(timestamp, dt);
+    updateSmoke(timestamp);
+    updateParticles(dt);
+  }
+
+  // Clear
+  ctx.fillStyle = C.bgDeep;
+  ctx.fillRect(0, 0, W, H);
+
+  // Background grid
+  drawGridBg();
+
+  // Intake hopper
+  drawIntakeHopper(timestamp);
+
+  // Factory
+  drawFactory(timestamp);
+
+  // Output dock
+  drawOutputDock(timestamp);
+
+  // Ambient particles
+  drawParticles(timestamp);
+
+  // OG Export mode
+  if (window.location.search.includes('export=og')) {
+    // Wait a few frames for the factory to populate
+    frameCount++;
+    if (frameCount === 60) {
+      try {
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'og-factory.png';
+          a.click(); URL.revokeObjectURL(url);
+        }, 'image/png');
+      } catch(e) {
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl; a.download = 'og-factory.png';
+        a.click();
+      }
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ─── INIT ──────────────────────────────────
+// Spawn initial items so the factory looks alive on load
+const initNow = performance.now();
+for (let i = 0; i < 5; i++) {
+  const item = {
+    id: itemIdCounter++,
+    progress: 0.1 + i * 0.18,
+    state: 'intake',
+    rejected: i === 2,
+    rejectFlash: 0,
+    sparkle: 0,
+    spawnTime: initNow - i * 3000,
+    opacity: 1,
+    size: 6 + Math.random() * 3,
+  };
+  if (item.progress >= 0.2 && item.progress < 0.8) item.state = 'forge';
+  if (item.progress >= 0.8) item.state = 'output';
+  items.push(item);
+}
+lastSpawn = initNow;
+
+// Handle reduced motion changes
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', function(e) {
+  reducedMotion = e.matches;
+});
+
+// Start
+requestAnimationFrame(render);
+
+})();
+</script>
+</body>
+</html>
