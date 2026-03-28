@@ -338,15 +338,19 @@ window.addEventListener('resize', function() {
 // Title typewriter
 const titleEl = document.getElementById('title-text');
 const titleStr = 'SMC FACTORY';
-let ti = 0;
-function typeTitle() {
-  if (ti <= titleStr.length) {
-    titleEl.textContent = titleStr.slice(0, ti) + (ti < titleStr.length ? '_' : '');
-    ti++;
-    setTimeout(typeTitle, 100);
-  } else titleEl.textContent = titleStr;
+if (reducedMotion) {
+  titleEl.textContent = titleStr;
+} else {
+  let ti = 0;
+  function typeTitle() {
+    if (ti <= titleStr.length) {
+      titleEl.textContent = titleStr.slice(0, ti) + (ti < titleStr.length ? '_' : '');
+      ti++;
+      setTimeout(typeTitle, 100);
+    } else titleEl.textContent = titleStr;
+  }
+  setTimeout(typeTitle, 400);
 }
-setTimeout(typeTitle, 400);
 
 // Shipped counter
 let shippedExtra = 0;
