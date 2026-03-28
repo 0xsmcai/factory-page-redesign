@@ -240,7 +240,7 @@ noscript .fallback-msg {
   </div>
 
   <div class="terminal-bar terminal-bar-bottom">
-    <a href="https://x.com/0xsmcai" target="_blank" rel="noopener" class="cta-link">&#x1D54F; @0xsmcai</a>
+    <a href="https://x.com/0xsmcai" target="_blank" rel="noopener noreferrer" class="cta-link">&#x1D54F; @0xsmcai</a>
     <span class="watermark">Built by 0xSMC · Autonomous AI agent</span>
     <span class="shipped-count" id="shipped-count">products shipped: 47</span>
   </div>
@@ -266,18 +266,34 @@ const C = {
   red:'#FF3333', redDim:'#8a1a1a',
 };
 
+// Convert #RRGGBB + hex alpha byte to rgba() for broad browser compat
+function hexA(hex, alphaByte) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  const a = parseInt(alphaByte, 16) / 255;
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(3) + ')';
+}
+
 const canvas = document.getElementById('factory-canvas');
 const ctx = canvas.getContext('2d');
 if (!ctx) return;
 
 let W, H;
 let fx, fy, fw, fh; // factory bounds
-let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => { reducedMotion = e.matches; });
+const motionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+let reducedMotion = motionMQ.matches;
+if (motionMQ.addEventListener) {
+  motionMQ.addEventListener('change', e => { reducedMotion = e.matches; });
+} else if (motionMQ.addListener) {
+  motionMQ.addListener(e => { reducedMotion = e.matches; });
+}
 
+const MAX_CANVAS_DIM = 4096;
 function resize() {
   const r = canvas.parentElement.getBoundingClientRect();
-  W = Math.floor(r.width); H = Math.floor(r.height);
+  W = Math.min(Math.floor(r.width), MAX_CANVAS_DIM) || 800;
+  H = Math.min(Math.floor(r.height), MAX_CANVAS_DIM) || 600;
   canvas.width = W; canvas.height = H;
   // Factory fills most of viewport
   fw = Math.floor(W * 0.94);
@@ -286,7 +302,11 @@ function resize() {
   fy = Math.floor(H * 0.20);
 }
 resize();
-window.addEventListener('resize', resize);
+let resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resize, 60);
+});
 
 // Title typewriter
 const titleEl = document.getElementById('title-text');
@@ -638,7 +658,7 @@ function drawZoneGlow(x, y, w, h, col, glowCol) {
   ctx.fillRect(x, y, w, h);
 
   // Bottom edge highlight
-  ctx.fillStyle = col + '18';
+  ctx.fillStyle = hexA(col, '18');
   ctx.fillRect(x + 4, y + h - 4, w - 8, 4);
 }
 
@@ -717,7 +737,7 @@ function drawWallDetail(fx, fy, fw, fh, inputW, forgeW, t) {
     ctx.strokeRect(px, py, 22, 16);
 
     // Screen content — mini waveforms
-    ctx.fillStyle = i < 2 ? C.greenDim + '80' : C.amberDim + '80';
+    ctx.fillStyle = i < 2 ? hexA(C.greenDim, '80') : hexA(C.amberDim, '80');
     const waveY = py + 8;
     for (let wx = 0; wx < 18; wx += 2) {
       const h = reducedMotion ? 3 : 2 + Math.sin(t * 0.004 + wx * 0.5 + i * 2) * 3;
@@ -739,7 +759,7 @@ function drawWallDetail(fx, fy, fw, fh, inputW, forgeW, t) {
   ctx.lineWidth = 1;
   ctx.strokeRect(termX, termY, 36, 24);
   // Terminal text lines
-  ctx.fillStyle = C.blue + '60';
+  ctx.fillStyle = hexA(C.blue, '60');
   for (let l = 0; l < 4; l++) {
     const lw = 8 + Math.random() * 20;
     ctx.fillRect(termX + 3, termY + 4 + l * 5, Math.min(lw, 30), 2);
@@ -748,12 +768,12 @@ function drawWallDetail(fx, fy, fw, fh, inputW, forgeW, t) {
   // Output zone: quality badge
   const badgeX = fx + inputW + forgeW + (fw - inputW - forgeW) * 0.3;
   const badgeY = fy + 18;
-  ctx.fillStyle = C.gold + '20';
+  ctx.fillStyle = hexA(C.gold, '20');
   ctx.beginPath(); ctx.arc(badgeX + 12, badgeY + 12, 14, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = C.gold + '40';
+  ctx.strokeStyle = hexA(C.gold, '40');
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.arc(badgeX + 12, badgeY + 12, 14, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = C.gold + '60';
+  ctx.fillStyle = hexA(C.gold, '60');
   ctx.font = '9px "VT323", monospace';
   ctx.textAlign = 'center';
   ctx.fillText('QA', badgeX + 12, badgeY + 14);
@@ -780,7 +800,7 @@ function drawForgeMachinery(zx, zy, zw, zh, t, beltY) {
   const pistonExt = reducedMotion ? 0 : Math.abs(Math.sin(t * 0.003)) * 8;
   ctx.fillStyle = '#4a4a60';
   ctx.fillRect(cx - 6, stampY + 8, 12, 6 + pistonExt);
-  ctx.fillStyle = C.amber + '40';
+  ctx.fillStyle = hexA(C.amber, '40');
   ctx.fillRect(cx - 4, stampY + 14 + pistonExt, 8, 2);
 
   // Processing progress bars (3 stations)
@@ -876,7 +896,7 @@ function drawForgeMachinery(zx, zy, zw, zh, t, beltY) {
       ctx.lineWidth = 1;
       ctx.strokeRect(bx, by2, 14, 10);
       // Coil lines
-      ctx.fillStyle = C.amberDim + '40';
+      ctx.fillStyle = hexA(C.amberDim, '40');
       ctx.fillRect(bx + 3, by2 + 2, 8, 1);
       ctx.fillRect(bx + 3, by2 + 5, 8, 1);
       ctx.fillRect(bx + 3, by2 + 8, 8, 1);
@@ -916,7 +936,7 @@ function drawIntakeHopper(zx, zy, zw, t, beltY) {
       ctx.fillStyle = C.blue;
       diamond(hx + hw / 2, fallY, 6);
       // Trail
-      ctx.fillStyle = C.blue + '30';
+      ctx.fillStyle = hexA(C.blue, '30');
       diamond(hx + hw / 2, fallY - 8, 4);
       ctx.globalAlpha = 1;
     }
@@ -964,7 +984,7 @@ function drawOutputDock(zx, zy, zw, t, beltY) {
   }
 
   // Shipping label
-  ctx.fillStyle = C.gold + '30';
+  ctx.fillStyle = hexA(C.gold, '30');
   ctx.font = '11px "VT323", monospace';
   ctx.textAlign = 'center';
   ctx.fillText('SHIPPED', zx + zw * 0.5, zy + 16);
@@ -977,20 +997,20 @@ function drawItem(x, y, it, t) {
   if (it.state === 'intake') {
     ctx.fillStyle = C.blue;
     diamond(x, y, s);
-    ctx.fillStyle = C.blue + '30';
+    ctx.fillStyle = hexA(C.blue, '30');
     diamond(x, y, s + 4);
   } else if (it.state === 'forge') {
     ctx.fillStyle = C.amber;
     diamond(x, y, s);
     const pulse = reducedMotion ? 0 : Math.sin(t * 0.008) * 0.3;
-    ctx.fillStyle = C.amberHot + '40';
+    ctx.fillStyle = hexA(C.amberHot, '40');
     diamond(x, y, s + 3 + pulse * 3);
   } else if (it.state === 'output') {
     ctx.fillStyle = C.gold;
     const hs = Math.floor(s / 2);
     ctx.fillRect(Math.floor(x - hs), Math.floor(y - hs), s | 0, s | 0);
     // Golden glow
-    ctx.fillStyle = C.gold + '20';
+    ctx.fillStyle = hexA(C.gold, '20');
     ctx.fillRect(Math.floor(x - hs - 2), Math.floor(y - hs - 2), (s | 0) + 4, (s | 0) + 4);
     if (it.sparkle > 0 && !reducedMotion) {
       ctx.fillStyle = '#fff';
@@ -1173,7 +1193,7 @@ function render(ts) {
   const dt = lastT ? Math.min(ts - lastT, 100) : 16;
   lastT = ts;
 
-  if (document.hidden) { requestAnimationFrame(render); return; }
+  if (document.hidden) return;
 
   if (!reducedMotion) {
     updateItems(ts, dt);
@@ -1191,9 +1211,12 @@ function render(ts) {
     render._fc++;
     if (render._fc === 60) {
       try {
-        canvas.toBlob(b => {
+        canvas.toBlob(function(b) {
+          if (!b) return;
+          const url = URL.createObjectURL(b);
           const a = document.createElement('a');
-          a.href = URL.createObjectURL(b); a.download = 'og-factory.png'; a.click();
+          a.href = url; a.download = 'og-factory.png'; a.click();
+          setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
         }, 'image/png');
       } catch(e) {
         const a = document.createElement('a');
@@ -1218,6 +1241,11 @@ for (let i = 0; i < 6; i++) {
   items.push(it);
 }
 lastSpawn = now;
+
+// Resume animation when tab becomes visible again
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) { lastT = 0; requestAnimationFrame(render); }
+});
 
 requestAnimationFrame(render);
 })();
