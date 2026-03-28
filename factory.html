@@ -285,8 +285,7 @@ const REJECT_CHANCE = 0.25;
 const C = {
   bg:'#0a0a0a', bgSurf:'#0d1117',
   border:'#1a2332', borderB:'#2a3a4a',
-  mutedTxt:'#4a5568', secTxt:'#7a8a9a', priTxt:'#c9d1d9',
-  green:'#4AF626', greenDim:'#2a8a14',
+  green:'#4AF626', greenDim:'#35a01c',
   blue:'#4A90D9', blueDim:'#2a5a8a', blueGlow:'rgba(74,144,217,0.12)',
   amber:'#FFB000', amberDim:'#8a6000', amberHot:'#FF8C00', amberGlow:'rgba(255,176,0,0.10)',
   gold:'#FFD700', goldGlow:'rgba(255,215,0,0.15)',
@@ -1237,6 +1236,7 @@ function drawParticles(t) {
 }
 
 // ═══ MAIN LOOP ═══
+const isOgExport = new URLSearchParams(window.location.search).get('export') === 'og';
 let lastT = 0;
 let rafId = 0;
 
@@ -1265,8 +1265,7 @@ function render(ts) {
   drawParticles(ts);
 
   // OG export — strict check: only ?export=og or &export=og
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('export') === 'og') {
+  if (isOgExport) {
     if (!render._fc) render._fc = 0;
     render._fc++;
     if (render._fc === 60) {
