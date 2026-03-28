@@ -8,13 +8,13 @@
 <!-- OG Meta -->
 <meta property="og:title" content="SMC Factory — Autonomous Startup Factory">
 <meta property="og:description" content="Ideas flow in. GStack validates. Products ship out.">
-<meta property="og:image" content="/og-factory.png">
+<meta property="og:image" content="https://0xsmcai.github.io/factory-page-redesign/og-factory.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@0xsmcai">
 <meta name="twitter:title" content="SMC Factory — Autonomous Startup Factory">
 <meta name="twitter:description" content="Ideas flow in. GStack validates. Products ship out.">
-<meta name="twitter:image" content="/og-factory.png">
+<meta name="twitter:image" content="https://0xsmcai.github.io/factory-page-redesign/og-factory.png">
 
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,7 +258,7 @@ noscript .fallback-msg {
   <main class="canvas-wrap">
     <canvas id="factory-canvas" role="img" aria-label="Isometric pixel art factory showing the 0xSMC autonomous startup pipeline: ideas enter, pass through GStack validation stages, and ship as golden products"></canvas>
     <div class="title-overlay">
-      <h1 class="title-main" id="title-text"></h1>
+      <h1 class="title-main" id="title-text">SMC FACTORY</h1>
       <p class="title-sub">AUTONOMOUS STARTUP FACTORY</p>
     </div>
     <div class="crt-overlay"></div>
@@ -304,16 +304,32 @@ function hexA(hex, alphaByte) {
 
 const canvas = document.getElementById('factory-canvas');
 const ctx = canvas.getContext('2d');
-if (!ctx) return;
+if (!ctx) {
+  // Canvas unsupported — show static fallback instead of blank page
+  canvas.style.display = 'none';
+  const fb = document.createElement('div');
+  fb.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;color:#4AF626;font-family:"VT323",monospace;font-size:24px;text-align:center;padding:32px';
+  fb.textContent = '[SMC FACTORY] Canvas not supported in this browser.';
+  canvas.parentElement.appendChild(fb);
+  return;
+}
 
 let W, H;
 let fx, fy, fw, fh; // factory bounds
 const motionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
 let reducedMotion = motionMQ.matches;
+function onMotionChange(e) {
+  reducedMotion = e.matches;
+  // If user re-enables motion mid-session, restart the loop
+  if (!reducedMotion && !rafId && !document.hidden) {
+    lastT = 0;
+    rafId = requestAnimationFrame(render);
+  }
+}
 if (motionMQ.addEventListener) {
-  motionMQ.addEventListener('change', e => { reducedMotion = e.matches; });
+  motionMQ.addEventListener('change', onMotionChange);
 } else if (motionMQ.addListener) {
-  motionMQ.addListener(e => { reducedMotion = e.matches; });
+  motionMQ.addListener(onMotionChange);
 }
 
 const MAX_CANVAS_DIM = 4096;
@@ -538,12 +554,15 @@ function drawFactory(t) {
   ctx.fillRect(chimX, roofY - chimH + 6, chimW, 3);
   ctx.fillRect(chimX, roofY - chimH + chimH - 8, chimW, 3);
 
-  // ── MAIN BODY ──
-  const grad = ctx.createLinearGradient(fx, fy, fx, fy + fh);
-  grad.addColorStop(0, '#181828');
-  grad.addColorStop(0.5, '#14141f');
-  grad.addColorStop(1, '#101018');
-  ctx.fillStyle = grad;
+  // ── MAIN BODY ── (gradient cached after resize)
+  if (!drawFactory._bodyGrad || drawFactory._lastFy !== fy || drawFactory._lastFh !== fh) {
+    drawFactory._bodyGrad = ctx.createLinearGradient(fx, fy, fx, fy + fh);
+    drawFactory._bodyGrad.addColorStop(0, '#181828');
+    drawFactory._bodyGrad.addColorStop(0.5, '#14141f');
+    drawFactory._bodyGrad.addColorStop(1, '#101018');
+    drawFactory._lastFy = fy; drawFactory._lastFh = fh;
+  }
+  ctx.fillStyle = drawFactory._bodyGrad;
   ctx.fillRect(fx, fy, fw, fh);
 
   // Body border
@@ -652,8 +671,9 @@ function drawFactory(t) {
   ctx.fillStyle = C.gold;
   ctx.fillText('> shipped \u2713', fx + zInputW + zForgeW + zOutputW * 0.5, fy + fh - 8);
 
-  // Processing counter
-  const active = items.filter(i => i.state === 'forge').length;
+  // Processing counter (avoid per-frame array allocation)
+  let active = 0;
+  for (let i = 0; i < items.length; i++) { if (items[i].state === 'forge') active++; }
   if (active > 0) {
     ctx.fillStyle = C.amberHot;
     ctx.font = '13px "VT323", monospace';
@@ -789,11 +809,11 @@ function drawWallDetail(fx, fy, fw, fh, inputW, forgeW, t) {
   ctx.strokeStyle = C.blueDim;
   ctx.lineWidth = 1;
   ctx.strokeRect(termX, termY, 36, 24);
-  // Terminal text lines
+  // Terminal text lines (stable widths, no per-frame random flicker)
   ctx.fillStyle = hexA(C.blue, '60');
+  const termLineW = [22, 14, 28, 18];
   for (let l = 0; l < 4; l++) {
-    const lw = 8 + Math.random() * 20;
-    ctx.fillRect(termX + 3, termY + 4 + l * 5, Math.min(lw, 30), 2);
+    ctx.fillRect(termX + 3, termY + 4 + l * 5, Math.min(termLineW[l], 30), 2);
   }
 
   // Output zone: quality badge
@@ -1218,45 +1238,56 @@ function drawParticles(t) {
 
 // ═══ MAIN LOOP ═══
 let lastT = 0;
+let rafId = 0;
 
 function render(ts) {
+  rafId = 0; // mark: no pending RAF yet
   if (!ts) ts = 0;
   const dt = lastT ? Math.min(ts - lastT, 100) : 16;
   lastT = ts;
 
-  if (document.hidden) return;
+  if (document.hidden) return; // don't re-schedule when hidden
 
   if (!reducedMotion) {
     updateItems(ts, dt);
     updateSmoke(ts);
     updateParts(dt);
+  } else {
+    // In reduced-motion: draw one static frame, then stop the loop
+    drawBg(ts);
+    drawFactory(ts);
+    // No particles in reduced-motion
+    return; // don't schedule another frame
   }
 
   drawBg(ts);
   drawFactory(ts);
   drawParticles(ts);
 
-  // OG export
-  if (window.location.search.includes('export=og')) {
+  // OG export — strict check: only ?export=og or &export=og
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('export') === 'og') {
     if (!render._fc) render._fc = 0;
     render._fc++;
     if (render._fc === 60) {
-      try {
-        canvas.toBlob(function(b) {
-          if (!b) return;
-          const url = URL.createObjectURL(b);
+      document.fonts.ready.then(function() {
+        try {
+          canvas.toBlob(function(b) {
+            if (!b) return;
+            const url = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'og-factory.png'; a.click();
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+          }, 'image/png');
+        } catch(e) {
           const a = document.createElement('a');
-          a.href = url; a.download = 'og-factory.png'; a.click();
-          setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-        }, 'image/png');
-      } catch(e) {
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL('image/png'); a.download = 'og-factory.png'; a.click();
-      }
+          a.href = canvas.toDataURL('image/png'); a.download = 'og-factory.png'; a.click();
+        }
+      });
     }
   }
 
-  requestAnimationFrame(render);
+  rafId = requestAnimationFrame(render);
 }
 
 // Seed initial items
@@ -1273,12 +1304,15 @@ for (let i = 0; i < 6; i++) {
 }
 lastSpawn = now;
 
-// Resume animation when tab becomes visible again
+// Resume animation when tab becomes visible again — guard against double RAF
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) { lastT = 0; requestAnimationFrame(render); }
+  if (!document.hidden && !rafId) {
+    lastT = 0;
+    rafId = requestAnimationFrame(render);
+  }
 });
 
-requestAnimationFrame(render);
+rafId = requestAnimationFrame(render);
 })();
 </script>
 </body>
