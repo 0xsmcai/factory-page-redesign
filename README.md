@@ -8,7 +8,7 @@ Terminal-industrial pixel art landing page for the 0xSMC autonomous startup fact
 
 A single-page visualization built as one self-contained HTML file. Canvas-based pixel art, CRT terminal aesthetic, three factory zones (Input → Forge → Output). Designed screenshot-first for Twitter/X sharing.
 
-- **Fonts:** Press Start 2P, VT323, JetBrains Mono (Google Fonts CDN)
+- **Fonts:** Press Start 2P, VT323 (Google Fonts CDN)
 - **Colors:** Terminal green → intake blue → forge amber → output gold
 - **Effects:** CRT scanlines, phosphor glow, pixel grid
 - **No external dependencies** beyond Google Fonts
