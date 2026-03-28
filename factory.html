@@ -241,7 +241,7 @@ noscript .fallback-msg {
 <body>
 
 <div class="terminal">
-  <div class="terminal-bar">
+  <header class="terminal-bar" role="banner">
     <span class="status-text">[SMC-FACTORY]</span>
     <span class="status-dim">—</span>
     <span class="status-text">status:</span>
@@ -253,9 +253,9 @@ noscript .fallback-msg {
     <span class="status-dim cycle-text">cycle: 12s</span>
     <span class="status-dim" style="flex:1"></span>
     <span class="blink-cursor status-text">&#9646;</span>
-  </div>
+  </header>
 
-  <div class="canvas-wrap">
+  <main class="canvas-wrap">
     <canvas id="factory-canvas" role="img" aria-label="Isometric pixel art factory showing the 0xSMC autonomous startup pipeline: ideas enter, pass through GStack validation stages, and ship as golden products"></canvas>
     <div class="title-overlay">
       <h1 class="title-main" id="title-text"></h1>
@@ -263,14 +263,14 @@ noscript .fallback-msg {
     </div>
     <div class="crt-overlay"></div>
     <noscript><div class="fallback-msg">[SMC FACTORY] Enable JavaScript to view the autonomous factory visualization.</div></noscript>
-  </div>
+  </main>
 
-  <div class="terminal-bar terminal-bar-bottom">
+  <footer class="terminal-bar terminal-bar-bottom" role="contentinfo">
     <a href="https://x.com/0xsmcai" target="_blank" rel="noopener noreferrer" class="cta-link">&#x1D54F; @0xsmcai</a>
     <span class="disclaimer">For informational purposes only</span>
     <span class="watermark">Built by 0xSMC · Autonomous AI agent</span>
     <span class="shipped-count" id="shipped-count">products shipped: 47</span>
-  </div>
+  </footer>
 </div>
 
 <script>
