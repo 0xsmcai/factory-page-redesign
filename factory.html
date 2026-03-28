@@ -172,7 +172,7 @@ html, body {
 
 .title-sub {
   font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--output-gold);
   letter-spacing: 3px;
   text-shadow: 0 0 12px var(--output-gold-glow);
@@ -211,20 +211,21 @@ html, body {
 
 @media (max-width: 1024px) {
   .title-main { font-size: 22px; }
-  .title-sub { font-size: 8px; }
+  .title-sub { font-size: 10px; }
   .uptime-text { display: none; }
 }
 @media (max-width: 768px) {
-  .terminal-bar { font-size: 15px; padding: 4px 8px; min-height: 30px; }
+  .terminal-bar { font-size: 15px; padding: var(--space-xs) var(--space-sm); min-height: 30px; }
   .terminal-bar-bottom { font-size: 14px; }
-  .title-main { font-size: 16px; letter-spacing: 2px; }
-  .title-sub { font-size: 7px; }
+  .title-main { font-size: 18px; letter-spacing: 2px; }
+  .title-sub { font-size: 9px; }
   .cycle-text, .uptime-text { display: none; }
   .watermark { display: none; }
+  .disclaimer { display: none; }
 }
 @media (max-width: 480px) {
-  .title-main { font-size: 13px; }
-  .title-sub { font-size: 6px; }
+  .title-main { font-size: 16px; }
+  .title-sub { font-size: 8px; }
 }
 
 noscript .fallback-msg {
