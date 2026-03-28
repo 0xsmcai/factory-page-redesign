@@ -60,6 +60,12 @@
   --space-2xl: 48px;
   --space-3xl: 64px;
 
+  /* CRT Effects */
+  --scanline-opacity: 0.03;
+  --scanline-color: rgba(74, 246, 38, 0.02);
+  --crt-vignette: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4));
+  --phosphor-blur: 0 0 8px var(--terminal-green-glow);
+
   /* Motion */
   --duration-blink: 1000ms;
   --duration-micro: 100ms;
@@ -122,7 +128,7 @@ html, body {
 .blink-cursor { animation: blink-c 1000ms step-end infinite; }
 @keyframes blink-c { 0%,100%{opacity:1} 50%{opacity:0} }
 
-.status-text { color: var(--terminal-green); }
+.status-text { color: var(--terminal-green); text-shadow: var(--phosphor-blur); }
 .status-dim { color: var(--terminal-green-dim); }
 
 .cta-link {
@@ -191,13 +197,13 @@ html, body {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(0deg,rgba(74,246,38,0.03) 0px,rgba(74,246,38,0.03) 1px,transparent 1px,transparent 3px);
+  background: repeating-linear-gradient(0deg,var(--scanline-color) 0px,var(--scanline-color) 1px,transparent 1px,transparent 3px);
 }
 .crt-overlay::after {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35));
+  background: var(--crt-vignette);
 }
 
 .disclaimer {
